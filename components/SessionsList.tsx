@@ -5,6 +5,7 @@ import type { Session } from '@/lib/supabase/types'
 import { calcTableFee, calcTotal, formatDuration, formatTime } from '@/lib/billing'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import PayNowQR from './PayNowQR'
 
 const STATUS_LABEL: Record<string, string> = {
   unpaid: 'Unpaid',
@@ -28,21 +29,6 @@ export default function SessionsList({ sessions: initial, memberId, memberName }
   const CARPARK_UNIT = 2  // $2 per carpark unit
 
   const PAYNOW_UEN = '201833555GRAS'
-
-  const BANKS = [
-    { label: 'DBS / POSB',  scheme: 'dbsdigibank-sg://' },
-    { label: 'DBS PayLah!', scheme: 'dbspaylah://' },
-    { label: 'UOB TMRW',    scheme: 'uob-sg://' },
-    { label: 'OCBC',        scheme: 'ocbc://' },
-    { label: 'GrabPay',     scheme: 'grab://' },
-    { label: 'Google Pay',  scheme: 'googlepay://' },
-  ]
-
-  function openBank(scheme: string, amount: number) {
-    // Copy UEN to clipboard — paste into bank app PayNow field
-    navigator.clipboard.writeText(PAYNOW_UEN).catch(() => {})
-    window.location.href = scheme
-  }
 
   async function markPaid(session: Session, method: 'paynow' | 'cash') {
     setSaving(session.id)
@@ -186,41 +172,15 @@ export default function SessionsList({ sessions: initial, memberId, memberName }
                     </div>
                   </div>
 
-                  {/* PayNow section */}
-                  <div className="flex flex-col gap-2">
-                    {/* UEN tap-to-copy */}
-                    <button
-                      onClick={() => navigator.clipboard.writeText(PAYNOW_UEN).catch(() => {})}
-                      className="rounded-xl px-4 py-3 text-left"
-                      style={{ background: 'var(--surface-2)' }}>
-                      <div className="text-xs mb-0.5" style={{ color: 'var(--muted)' }}>PayNow UEN · tap to copy</div>
-                      <div className="font-mono font-bold tracking-wide">{PAYNOW_UEN}</div>
-                    </button>
-                    {/* Steps */}
-                    <div className="text-xs px-1" style={{ color: 'var(--muted)' }}>
-                      1. Tap your bank below — UEN copied to clipboard<br />
-                      2. Go to PayNow → paste UEN<br />
-                      3. Enter <span style={{ color: 'var(--foreground)', fontWeight: 600 }}>${total.toFixed(2)}</span> · add your name in remarks
-                    </div>
-                    {/* Bank buttons */}
-                    <div className="grid grid-cols-3 gap-2">
-                      {BANKS.map(bank => (
-                        <button key={bank.label}
-                          onClick={() => openBank(bank.scheme, total)}
-                          className="py-2.5 rounded-xl text-xs font-semibold border flex items-center justify-center"
-                          style={{ background: 'var(--surface-2)', borderColor: 'var(--border)', color: 'var(--foreground)' }}>
-                          {bank.label}
-                        </button>
-                      ))}
-                    </div>
-                    <button
-                      onClick={() => markPaid(s, 'paynow')}
-                      disabled={saving === s.id}
-                      className="w-full py-3 rounded-xl font-semibold text-white disabled:opacity-40"
-                      style={{ background: 'var(--accent)' }}>
-                      {saving === s.id ? 'Saving…' : "Done — I've sent PayNow"}
-                    </button>
-                  </div>
+                  {/* PayNow QR */}
+                  <PayNowQR uen={PAYNOW_UEN} amount={total} memberName={memberName} />
+                  <button
+                    onClick={() => markPaid(s, 'paynow')}
+                    disabled={saving === s.id}
+                    className="w-full py-3 rounded-xl font-semibold text-white disabled:opacity-40"
+                    style={{ background: 'var(--accent)' }}>
+                    {saving === s.id ? 'Saving…' : "Done — I've sent PayNow"}
+                  </button>
 
                   {/* Divider */}
                   <div className="flex items-center gap-3">
