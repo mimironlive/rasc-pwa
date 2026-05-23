@@ -30,30 +30,18 @@ export default function SessionsList({ sessions: initial, memberId, memberName }
   const PAYNOW_UEN = '201833555GRAS'
 
   const BANKS = [
-    {
-      label: 'DBS / POSB',
-      buildUrl: (amt: number, name: string) =>
-        `dbsdigibank-sg://paynow?uen=${PAYNOW_UEN}&amount=${amt.toFixed(2)}&editable=0&info=${encodeURIComponent(name)}`,
-    },
-    {
-      label: 'UOB',
-      buildUrl: (amt: number, name: string) =>
-        `uobmighty://paynow?uen=${PAYNOW_UEN}&amount=${amt.toFixed(2)}&info=${encodeURIComponent(name)}`,
-    },
-    {
-      label: 'OCBC',
-      buildUrl: (amt: number, name: string) =>
-        `ocbc://paynow?uen=${PAYNOW_UEN}&amount=${amt.toFixed(2)}&info=${encodeURIComponent(name)}`,
-    },
-    {
-      label: 'Google Pay',
-      buildUrl: (amt: number, name: string) =>
-        `googlepay://pay?uen=${PAYNOW_UEN}&amount=${amt.toFixed(2)}&remarks=${encodeURIComponent(name)}`,
-    },
+    { label: 'DBS / POSB',  scheme: 'dbsdigibank-sg://' },
+    { label: 'DBS PayLah!', scheme: 'dbspaylah://' },
+    { label: 'UOB TMRW',    scheme: 'uob-sg://' },
+    { label: 'OCBC',        scheme: 'ocbc://' },
+    { label: 'GrabPay',     scheme: 'grab://' },
+    { label: 'Google Pay',  scheme: 'googlepay://' },
   ]
 
-  function openBank(buildUrl: (amt: number, name: string) => string, amount: number) {
-    window.location.href = buildUrl(amount, memberName)
+  function openBank(scheme: string, amount: number) {
+    // Copy UEN to clipboard — paste into bank app PayNow field
+    navigator.clipboard.writeText(PAYNOW_UEN).catch(() => {})
+    window.location.href = scheme
   }
 
   async function markPaid(session: Session, method: 'paynow' | 'cash') {
@@ -200,22 +188,30 @@ export default function SessionsList({ sessions: initial, memberId, memberName }
 
                   {/* PayNow section */}
                   <div className="flex flex-col gap-2">
-                    <div className="text-xs font-medium" style={{ color: 'var(--muted)' }}>
-                      Pay via PayNow — UEN: <span className="font-mono" style={{ color: 'var(--foreground)' }}>{PAYNOW_UEN}</span>
+                    {/* UEN tap-to-copy */}
+                    <button
+                      onClick={() => navigator.clipboard.writeText(PAYNOW_UEN).catch(() => {})}
+                      className="rounded-xl px-4 py-3 text-left"
+                      style={{ background: 'var(--surface-2)' }}>
+                      <div className="text-xs mb-0.5" style={{ color: 'var(--muted)' }}>PayNow UEN · tap to copy</div>
+                      <div className="font-mono font-bold tracking-wide">{PAYNOW_UEN}</div>
+                    </button>
+                    {/* Steps */}
+                    <div className="text-xs px-1" style={{ color: 'var(--muted)' }}>
+                      1. Tap your bank below — UEN copied to clipboard<br />
+                      2. Go to PayNow → paste UEN<br />
+                      3. Enter <span style={{ color: 'var(--foreground)', fontWeight: 600 }}>${total.toFixed(2)}</span> · add your name in remarks
                     </div>
                     {/* Bank buttons */}
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-3 gap-2">
                       {BANKS.map(bank => (
                         <button key={bank.label}
-                          onClick={() => openBank(bank.buildUrl, total)}
-                          className="py-3 rounded-xl text-sm font-semibold border flex items-center justify-center gap-2"
+                          onClick={() => openBank(bank.scheme, total)}
+                          className="py-2.5 rounded-xl text-xs font-semibold border flex items-center justify-center"
                           style={{ background: 'var(--surface-2)', borderColor: 'var(--border)', color: 'var(--foreground)' }}>
                           {bank.label}
                         </button>
                       ))}
-                    </div>
-                    <div className="text-xs text-center" style={{ color: 'var(--muted)' }}>
-                      UEN, amount &amp; your name pre-filled · just confirm payment
                     </div>
                     <button
                       onClick={() => markPaid(s, 'paynow')}
